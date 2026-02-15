@@ -2,6 +2,8 @@
 
 **Predicting Churn Timing and Measuring Notification Impact for Long-Tenured Wellness Users**
 
+---
+
 ## Overview
 
 This project builds a two-model system for a wellness/fitness subscription app:
@@ -11,17 +13,43 @@ This project builds a two-model system for a wellness/fitness subscription app:
 
 The analysis focuses on **long-tenured users (180+ day tenure)** to address retention bleed rather than early-stage drop-offs.
 
+---
+
+## Results
+
+### Model Performance — ROC-AUC: 0.921
+![ROC and Precision-Recall Curves](images/roc_pr_curves.png)
+
+### Feature Importance — Drift Features Dominate
+The top predictors are all behavioral drift signals, confirming the model relies on real disengagement patterns rather than static demographics.
+
+![Feature Importance](images/feature_importance.png)
+
+### Drift Signal — Churners vs Retained Users
+Churners show clear behavioral decay: longer inactivity gaps, declining workout durations, and dropping session frequency compared to their own baseline.
+
+![Drift Comparison](images/drift_comparison.png)
+
+### Notification Uplift — 2.5pp Churn Reduction
+Push notifications reduce churn from 13.9% to 11.4%, but the effect varies by user segment.
+
+![Notification Uplift](images/notification_uplift.png)
+
+---
+
 ## Key Findings
 
 | Metric | Value |
 |--------|-------|
-| Overall churn rate | ~12.8% |
-| Model ROC-AUC (5-fold CV) | **~0.92** |
-| Top churn predictor | `days_since_last_workout` (recency drift) |
-| Key drift signal | Churners show session decline of −0.42 vs +0.51 for retained |
+| Overall churn rate | 12.8% |
+| Model ROC-AUC (holdout) | **0.921** |
+| Top churn predictor | `days_since_last_workout` |
+| Churner session decline | −0.42 vs +0.51 for retained |
+| Notification uplift | **−2.5 pp** churn reduction |
 | Safest cohort | Medium Activity users |
 | Highest risk cohort | Low Activity users |
-| Notification uplift | **−2.5 pp** churn reduction for notified users |
+
+---
 
 ## Methodology — CRISP-DM
 
@@ -41,6 +69,8 @@ Rather than static point-in-time metrics, the model compares a user's **baseline
 
 The churn prediction model and the uplift analysis are kept **independent** — the notification flag is not used as a model feature. This prevents conflating "who is at risk" with "what intervention works."
 
+---
+
 ## Project Structure
 
 ```
@@ -49,7 +79,12 @@ The churn prediction model and the uplift analysis are kept **independent** — 
 │   └── agile_churn_raw_v11.xlsx          # Multi-sheet dataset (6 tables)
 ├── docs/
 │   ├── Capstone_Report_Team_3.pdf        # Full written report
-│   └── Presentation_Team_3.pdf           # Slide deck
+│   └── Presentation_Team_3.pptx          # Slide deck
+├── images/                                # Result visualizations
+│   ├── roc_pr_curves.png
+│   ├── feature_importance.png
+│   ├── drift_comparison.png
+│   └── notification_uplift.png
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -57,21 +92,19 @@ The churn prediction model and the uplift analysis are kept **independent** — 
 
 ## Dataset
 
-The Excel file contains six sheets:
-
 | Sheet | Description | Key Columns |
 |-------|-------------|-------------|
-| `users_raw` | User demographics & decision date | `user_id`, `age`, `gender`, `decision_date` |
-| `subscriptions_raw` | Billing & tenure info | `billing_cycle`, `first_paid_date`, `paying_status` |
-| `sessions_raw` | Workout session logs | `workout_type`, `duration_min`, `calories`, `start_ts` |
-| `support_raw` | Support ticket contacts | `channel`, `topic`, `contact_ts` |
-| `notifications_raw` | Notification send logs | `sent_ts` |
-| `cancellations_raw` | Churn events & reasons | `churn_ts`, `reason` |
+| `users_raw` | Demographics & decision date | `user_id`, `age`, `gender`, `decision_date` |
+| `subscriptions_raw` | Billing & tenure | `billing_cycle`, `first_paid_date`, `paying_status` |
+| `sessions_raw` | Workout logs | `workout_type`, `duration_min`, `calories`, `start_ts` |
+| `support_raw` | Support tickets | `channel`, `topic`, `contact_ts` |
+| `notifications_raw` | Notification logs | `sent_ts` |
+| `cancellations_raw` | Churn events | `churn_ts`, `reason` |
 
 ## Setup
 
 ```bash
-git clone https://github.com/<your-username>/churn-prediction-model.git
+git clone https://github.com/yashraj10/churn-prediction-model.git
 cd churn-prediction-model
 pip install -r requirements.txt
 jupyter notebook Churn_Prediction_Model.ipynb
