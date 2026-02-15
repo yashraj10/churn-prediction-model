@@ -9,29 +9,35 @@
 This project builds a two-model system for a wellness/fitness subscription app:
 
 1. **Churn Prediction Model** — An XGBoost classifier that detects behavioral drift (declining session frequency, shrinking workout durations, growing inactivity gaps) to identify users likely to cancel within 30 days.
-2. **Uplift Analysis** — Measures the causal impact of push notifications on churn reduction across user segments using real notification data.
+2. **Uplift Analysis** — Estimates the association between push notifications and churn reduction using **Inverse Propensity Weighting (IPW)** to adjust for confounding, with time-window enforcement on notification timing.
 
-The analysis focuses on **long-tenured users (180+ day tenure)** to address retention bleed rather than early-stage drop-offs.
+The analysis focuses on **long-tenured users (180+ day tenure)**, verified with an explicit assertion in code.
+
+**Python ≥ 3.10 recommended.**
 
 ---
 
 ## Results
 
 ### Model Performance — ROC-AUC: 0.921
+
 ![ROC and Precision-Recall Curves](images/roc_pr_curves.png)
 
 ### Feature Importance — Drift Features Dominate
+
 The top predictors are all behavioral drift signals, confirming the model relies on real disengagement patterns rather than static demographics.
 
 ![Feature Importance](images/feature_importance.png)
 
 ### Drift Signal — Churners vs Retained Users
+
 Churners show clear behavioral decay: longer inactivity gaps, declining workout durations, and dropping session frequency compared to their own baseline.
 
 ![Drift Comparison](images/drift_comparison.png)
 
-### Notification Uplift — 2.5pp Churn Reduction
-Push notifications reduce churn from 13.9% to 11.4%, but the effect varies by user segment.
+### Notification Uplift — ~2.5pp Adjusted Churn Reduction
+
+Notifications are associated with lower churn (13.9% → 11.4%), adjusted for baseline covariates via IPW. This is an **observational estimate**, not a randomized experiment — unmeasured confounders may still exist.
 
 ![Notification Uplift](images/notification_uplift.png)
 
@@ -45,7 +51,7 @@ Push notifications reduce churn from 13.9% to 11.4%, but the effect varies by us
 | Model ROC-AUC (holdout) | **0.921** |
 | Top churn predictor | `days_since_last_workout` |
 | Churner session decline | −0.42 vs +0.51 for retained |
-| Notification uplift | **−2.5 pp** churn reduction |
+| Notification association (IPW-adjusted) | **~−2.5 pp** |
 | Safest cohort | Medium Activity users |
 | Highest risk cohort | Low Activity users |
 
@@ -69,18 +75,26 @@ Rather than static point-in-time metrics, the model compares a user's **baseline
 
 The churn prediction model and the uplift analysis are kept **independent** — the notification flag is not used as a model feature. This prevents conflating "who is at risk" with "what intervention works."
 
+### Uplift Methodology
+
+The notification impact analysis uses three safeguards:
+
+1. **Time-window enforcement** — Only notifications sent 7–30 days before the decision date are counted as treatment. This ensures the notification plausibly preceded the churn decision.
+2. **Propensity score adjustment (IPW)** — A logistic regression model estimates each user's probability of receiving a notification based on baseline covariates. Inverse propensity weights adjust for systematic differences between treatment and control groups.
+3. **Honest framing** — Results are reported as adjusted associations, not causal effects. A randomized A/B test would be needed to confirm causality.
+
 ---
 
 ## Project Structure
 
 ```
-├── Churn_Prediction_Model.ipynb          # Main analysis notebook
+├── Churn_Prediction_Model.ipynb    # Main analysis notebook
 ├── data/
-│   └── agile_churn_raw_v11.xlsx          # Multi-sheet dataset (6 tables)
+│   └── agile_churn_raw_v11.xlsx    # Multi-sheet dataset (6 tables)
 ├── docs/
-│   ├── Capstone_Report_Team_3.pdf        # Full written report
-│   └── Presentation_Team_3.pptx          # Slide deck
-├── images/                                # Result visualizations
+│   ├── Capstone_Report_Team_3.pdf  # Full written report
+│   └── Presentation_Team_3.pptx   # Slide deck
+├── images/                          # Result visualizations
 │   ├── roc_pr_curves.png
 │   ├── feature_importance.png
 │   ├── drift_comparison.png
@@ -114,7 +128,7 @@ jupyter notebook Churn_Prediction_Model.ipynb
 
 - **XGBoost** — Gradient boosted tree classifier
 - **SHAP** — Model explainability
-- **scikit-learn** — Cross-validation, metrics
+- **scikit-learn** — Cross-validation, metrics, propensity scoring
 - **pandas / NumPy** — Data wrangling
 - **seaborn / matplotlib** — Visualization
 
