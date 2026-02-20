@@ -7,3 +7,4 @@ xgboost
 shap
 openpyxl
 streamlit
+altair
